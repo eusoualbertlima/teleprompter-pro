@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -11,6 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
     <!-- Tela de Configuração -->
     <div id="setup-screen" class="screen active">
@@ -72,6 +74,18 @@
         <!-- Vídeo da Câmera (Background) -->
         <video id="camera-video" autoplay playsinline muted></video>
 
+        <!-- Timer de Gravação -->
+        <div id="recording-timer" class="hidden">
+            <div class="timer-container">
+                <span class="rec-indicator">⏺</span>
+                <span id="timer-display">00:00</span>
+                <span class="timer-limit">/ 60s</span>
+            </div>
+            <div id="timer-progress">
+                <div id="timer-bar"></div>
+            </div>
+        </div>
+
         <!-- Overlay do Texto -->
         <div id="text-overlay">
             <div id="scroll-container">
@@ -83,6 +97,9 @@
         <div id="controls">
             <button id="back-btn" class="control-btn" title="Voltar">
                 ⬅️
+            </button>
+            <button id="record-btn" class="control-btn record-btn" title="Gravar">
+                ⏺️
             </button>
             <button id="play-pause-btn" class="control-btn play-btn" title="Play/Pause">
                 ▶️
@@ -104,4 +121,5 @@
 
     <script src="app.js"></script>
 </body>
+
 </html>

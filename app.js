@@ -18,21 +18,32 @@ const teleprompterTextEl = document.getElementById('teleprompter-text');
 const scrollContainer = document.getElementById('scroll-container');
 
 const backBtn = document.getElementById('back-btn');
+const recordBtn = document.getElementById('record-btn');
 const playPauseBtn = document.getElementById('play-pause-btn');
 const restartBtn = document.getElementById('restart-btn');
 const speedDownBtn = document.getElementById('speed-down-btn');
 const speedUpBtn = document.getElementById('speed-up-btn');
 
+// Recording elements
+const recordingTimer = document.getElementById('recording-timer');
+const timerDisplay = document.getElementById('timer-display');
+const timerBar = document.getElementById('timer-bar');
+
 // ==================== ESTADO DA APLICAÇÃO ====================
 let state = {
     isPlaying: false,
+    isRecording: false,
     scrollPosition: 0,
     speed: 3,
     opacity: 70,
     fontSize: 28,
     mirrored: false,
     animationId: null,
-    stream: null
+    stream: null,
+    mediaRecorder: null,
+    recordedChunks: [],
+    recordingStartTime: null,
+    timerInterval: null
 };
 
 // ==================== TEXTO PADRÃO (DEMO) ====================
@@ -85,6 +96,7 @@ async function init() {
     // Botões
     startBtn.addEventListener('click', startTeleprompter);
     backBtn.addEventListener('click', goBack);
+    recordBtn.addEventListener('click', toggleRecording);
     playPauseBtn.addEventListener('click', togglePlayPause);
     restartBtn.addEventListener('click', restartScroll);
     speedDownBtn.addEventListener('click', decreaseSpeed);
@@ -175,15 +187,15 @@ async function startTeleprompter() {
     }
 
     try {
-        // Inicia câmera
+        // Inicia câmera COM ÁUDIO para gravação
         const constraints = {
             video: {
                 deviceId: cameraSelect.value ? { exact: cameraSelect.value } : undefined,
                 facingMode: cameraSelect.value ? undefined : 'user',
-                width: { ideal: 1920 },
-                height: { ideal: 1080 }
+                width: { ideal: 1080 },
+                height: { ideal: 1920 }
             },
-            audio: false
+            audio: true
         };
 
         state.stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -210,11 +222,52 @@ async function startTeleprompter() {
 
         // Começa pausado
         state.isPlaying = false;
+        state.isRecording = false;
         updatePlayPauseButton();
 
     } catch (error) {
         console.error('Erro ao iniciar:', error);
-        alert('Erro ao acessar a câmera. Verifique as permissões do navegador.');
+
+        // Tenta sem áudio se falhar
+        try {
+            const constraintsNoAudio = {
+                video: {
+                    deviceId: cameraSelect.value ? { exact: cameraSelect.value } : undefined,
+                    facingMode: cameraSelect.value ? undefined : 'user',
+                    width: { ideal: 1080 },
+                    height: { ideal: 1920 }
+                },
+                audio: false
+            };
+
+            state.stream = await navigator.mediaDevices.getUserMedia(constraintsNoAudio);
+            cameraVideo.srcObject = state.stream;
+
+            teleprompterTextEl.innerHTML = formatText(text);
+            teleprompterTextEl.style.fontSize = `${state.fontSize}px`;
+            textOverlay.style.backgroundColor = `rgba(0, 0, 0, ${(100 - state.opacity) / 100 * 0.7})`;
+
+            if (state.mirrored) {
+                teleprompterTextEl.classList.add('mirrored');
+            } else {
+                teleprompterTextEl.classList.remove('mirrored');
+            }
+
+            state.scrollPosition = 0;
+            teleprompterTextEl.style.transform = state.mirrored ? 'scaleX(-1) translateY(0)' : 'translateY(0)';
+
+            setupScreen.classList.remove('active');
+            teleprompterScreen.classList.add('active');
+
+            state.isPlaying = false;
+            state.isRecording = false;
+            updatePlayPauseButton();
+
+            alert('⚠️ Microfone não disponível. Gravação será sem áudio.');
+
+        } catch (error2) {
+            alert('Erro ao acessar a câmera. Verifique as permissões do navegador.');
+        }
     }
 }
 
@@ -225,6 +278,184 @@ function formatText(text) {
         .filter(line => line.trim())
         .map(line => `<p style="margin-bottom: 1em;">${line}</p>`)
         .join('');
+}
+
+// ==================== GRAVAÇÃO ====================
+function toggleRecording() {
+    if (state.isRecording) {
+        stopRecording();
+    } else {
+        startRecording();
+    }
+}
+
+async function startRecording() {
+    if (!state.stream) {
+        alert('Câmera não está ativa!');
+        return;
+    }
+
+    try {
+        // Configura o MediaRecorder
+        const options = { mimeType: 'video/webm;codecs=vp9,opus' };
+
+        // Fallback para outros formatos
+        if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+            if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')) {
+                options.mimeType = 'video/webm;codecs=vp8,opus';
+            } else if (MediaRecorder.isTypeSupported('video/webm')) {
+                options.mimeType = 'video/webm';
+            } else if (MediaRecorder.isTypeSupported('video/mp4')) {
+                options.mimeType = 'video/mp4';
+            } else {
+                alert('Seu navegador não suporta gravação de vídeo');
+                return;
+            }
+        }
+
+        state.recordedChunks = [];
+        state.mediaRecorder = new MediaRecorder(state.stream, options);
+
+        state.mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+                state.recordedChunks.push(event.data);
+            }
+        };
+
+        state.mediaRecorder.onstop = () => {
+            saveRecording();
+        };
+
+        // Inicia gravação
+        state.mediaRecorder.start(100); // Salva chunks a cada 100ms
+        state.isRecording = true;
+        state.recordingStartTime = Date.now();
+
+        // Atualiza UI
+        recordBtn.textContent = '⏹️';
+        recordBtn.classList.add('recording');
+        recordBtn.title = 'Parar Gravação';
+        recordingTimer.classList.remove('hidden');
+
+        // Inicia timer
+        startTimer();
+
+        // Auto-inicia o scroll do texto
+        if (!state.isPlaying) {
+            togglePlayPause();
+        }
+
+    } catch (error) {
+        console.error('Erro ao iniciar gravação:', error);
+        alert('Erro ao iniciar gravação: ' + error.message);
+    }
+}
+
+function stopRecording() {
+    if (state.mediaRecorder && state.isRecording) {
+        state.mediaRecorder.stop();
+        state.isRecording = false;
+
+        // Atualiza UI
+        recordBtn.textContent = '⏺️';
+        recordBtn.classList.remove('recording');
+        recordBtn.title = 'Gravar';
+        recordingTimer.classList.add('hidden');
+        recordingTimer.classList.remove('warning', 'danger');
+        timerBar.classList.remove('warning', 'danger');
+
+        // Para timer
+        stopTimer();
+
+        // Para o scroll
+        if (state.isPlaying) {
+            togglePlayPause();
+        }
+    }
+}
+
+function saveRecording() {
+    if (state.recordedChunks.length === 0) {
+        alert('Nenhum vídeo gravado!');
+        return;
+    }
+
+    const blob = new Blob(state.recordedChunks, { type: 'video/webm' });
+    const url = URL.createObjectURL(blob);
+
+    // Cria link de download
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `story_${new Date().toISOString().slice(0, 19).replace(/[:-]/g, '')}.webm`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    // Limpa
+    URL.revokeObjectURL(url);
+    state.recordedChunks = [];
+
+    // Feedback
+    alert('✅ Vídeo salvo! Verifique seus downloads.');
+}
+
+// ==================== TIMER ====================
+function startTimer() {
+    state.recordingStartTime = Date.now();
+
+    updateTimerDisplay();
+
+    state.timerInterval = setInterval(() => {
+        updateTimerDisplay();
+    }, 100);
+}
+
+function stopTimer() {
+    if (state.timerInterval) {
+        clearInterval(state.timerInterval);
+        state.timerInterval = null;
+    }
+
+    // Reset display
+    timerDisplay.textContent = '00:00';
+    timerBar.style.width = '0%';
+}
+
+function updateTimerDisplay() {
+    const elapsed = Date.now() - state.recordingStartTime;
+    const seconds = Math.floor(elapsed / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+
+    // Formata display
+    timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+
+    // Atualiza barra de progresso (60 segundos = 100%)
+    const progress = Math.min((seconds / 60) * 100, 100);
+    timerBar.style.width = `${progress}%`;
+
+    // Estados visuais baseados no tempo
+    if (seconds >= 55) {
+        // PERIGO - menos de 5 segundos restantes
+        recordingTimer.classList.remove('warning');
+        recordingTimer.classList.add('danger');
+        timerBar.classList.remove('warning');
+        timerBar.classList.add('danger');
+    } else if (seconds >= 45) {
+        // AVISO - menos de 15 segundos restantes
+        recordingTimer.classList.add('warning');
+        recordingTimer.classList.remove('danger');
+        timerBar.classList.add('warning');
+        timerBar.classList.remove('danger');
+    } else {
+        recordingTimer.classList.remove('warning', 'danger');
+        timerBar.classList.remove('warning', 'danger');
+    }
+
+    // Auto-stop aos 60 segundos (limite do story)
+    if (seconds >= 60) {
+        stopRecording();
+    }
 }
 
 // ==================== CONTROLES ====================
@@ -309,6 +540,11 @@ function decreaseSpeed() {
 }
 
 function goBack() {
+    // Para gravação se estiver ativa
+    if (state.isRecording) {
+        stopRecording();
+    }
+
     // Para tudo
     stopScrolling();
     state.isPlaying = false;
