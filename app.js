@@ -187,22 +187,13 @@ async function startTeleprompter() {
     }
 
     try {
-        // Inicia câmera COM ÁUDIO - proporção 9:16 pra story
+        // Câmera SIMPLES - sem restrições pra evitar zoom
         const constraints = {
             video: {
                 deviceId: cameraSelect.value ? { exact: cameraSelect.value } : undefined,
-                facingMode: cameraSelect.value ? undefined : 'user',
-                aspectRatio: { ideal: 9 / 16 },  // Proporção vertical de story
-                width: { ideal: 1080 },
-                height: { ideal: 1920 }
+                facingMode: cameraSelect.value ? undefined : 'user'
             },
-            audio: {
-                echoCancellation: true,
-                noiseSuppression: true,
-                autoGainControl: true,
-                sampleRate: { ideal: 48000 },
-                channelCount: { ideal: 1 }
-            }
+            audio: true
         };
 
         state.stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -240,10 +231,7 @@ async function startTeleprompter() {
             const constraintsNoAudio = {
                 video: {
                     deviceId: cameraSelect.value ? { exact: cameraSelect.value } : undefined,
-                    facingMode: cameraSelect.value ? undefined : 'user',
-                    aspectRatio: { ideal: 9 / 16 },
-                    width: { ideal: 1080 },
-                    height: { ideal: 1920 }
+                    facingMode: cameraSelect.value ? undefined : 'user'
                 },
                 audio: false
             };
@@ -327,9 +315,9 @@ async function startRecording() {
             return;
         }
 
-        // Qualidade alta para vídeo de story
-        options.videoBitsPerSecond = 5000000;  // 5 Mbps - qualidade HD
-        options.audioBitsPerSecond = 192000;   // 192 kbps - áudio alta qualidade
+        // Qualidade BAIXA pra não travar
+        options.videoBitsPerSecond = 1000000;  // 1 Mbps - leve
+        options.audioBitsPerSecond = 64000;    // 64 kbps - áudio leve
 
         state.recordedChunks = [];
         state.mediaRecorder = new MediaRecorder(state.stream, options);
