@@ -188,12 +188,11 @@ async function startTeleprompter() {
 
     try {
         // Inicia câmera COM ÁUDIO para gravação
+        // Sem restrições de resolução para evitar zoom
         const constraints = {
             video: {
                 deviceId: cameraSelect.value ? { exact: cameraSelect.value } : undefined,
-                facingMode: cameraSelect.value ? undefined : 'user',
-                width: { ideal: 1080 },
-                height: { ideal: 1920 }
+                facingMode: cameraSelect.value ? undefined : 'user'
             },
             audio: true
         };
@@ -233,9 +232,7 @@ async function startTeleprompter() {
             const constraintsNoAudio = {
                 video: {
                     deviceId: cameraSelect.value ? { exact: cameraSelect.value } : undefined,
-                    facingMode: cameraSelect.value ? undefined : 'user',
-                    width: { ideal: 1080 },
-                    height: { ideal: 1920 }
+                    facingMode: cameraSelect.value ? undefined : 'user'
                 },
                 audio: false
             };
@@ -296,22 +293,31 @@ async function startRecording() {
     }
 
     try {
-        // Configura o MediaRecorder
-        const options = { mimeType: 'video/webm;codecs=vp9,opus' };
+        // Configura o MediaRecorder com opções leves para mobile
+        let options = {};
 
-        // Fallback para outros formatos
-        if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-            if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')) {
-                options.mimeType = 'video/webm;codecs=vp8,opus';
-            } else if (MediaRecorder.isTypeSupported('video/webm')) {
-                options.mimeType = 'video/webm';
-            } else if (MediaRecorder.isTypeSupported('video/mp4')) {
-                options.mimeType = 'video/mp4';
-            } else {
-                alert('Seu navegador não suporta gravação de vídeo');
-                return;
+        // Tenta formatos mais leves primeiro para melhor performance
+        const mimeTypes = [
+            'video/webm;codecs=vp8,opus',  // VP8 é mais leve que VP9
+            'video/webm;codecs=vp8',
+            'video/webm',
+            'video/mp4'
+        ];
+
+        for (const mimeType of mimeTypes) {
+            if (MediaRecorder.isTypeSupported(mimeType)) {
+                options.mimeType = mimeType;
+                break;
             }
         }
+
+        if (!options.mimeType) {
+            alert('Seu navegador não suporta gravação de vídeo');
+            return;
+        }
+
+        // Bitrate baixo para evitar travamentos
+        options.videoBitsPerSecond = 1500000; // 1.5 Mbps
 
         state.recordedChunks = [];
         state.mediaRecorder = new MediaRecorder(state.stream, options);
@@ -326,8 +332,8 @@ async function startRecording() {
             saveRecording();
         };
 
-        // Inicia gravação
-        state.mediaRecorder.start(100); // Salva chunks a cada 100ms
+        // Inicia gravação - chunks maiores para menos overhead
+        state.mediaRecorder.start(1000); // Salva chunks a cada 1 segundo
         state.isRecording = true;
         state.recordingStartTime = Date.now();
 
