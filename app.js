@@ -187,14 +187,12 @@ async function startTeleprompter() {
     }
 
     try {
-        // Inicia câmera COM ÁUDIO em alta qualidade
+        // Inicia câmera COM ÁUDIO - sem restrição de resolução pra evitar zoom
         const constraints = {
             video: {
                 deviceId: cameraSelect.value ? { exact: cameraSelect.value } : undefined,
-                facingMode: cameraSelect.value ? undefined : 'user',
-                width: { ideal: 1080 },
-                height: { ideal: 1920 },
-                frameRate: { ideal: 30 }
+                facingMode: cameraSelect.value ? undefined : 'user'
+                // SEM width/height pra não forçar crop/zoom
             },
             audio: {
                 echoCancellation: true,
@@ -238,10 +236,8 @@ async function startTeleprompter() {
             const constraintsNoAudio = {
                 video: {
                     deviceId: cameraSelect.value ? { exact: cameraSelect.value } : undefined,
-                    facingMode: cameraSelect.value ? undefined : 'user',
-                    width: { ideal: 1080 },
-                    height: { ideal: 1920 },
-                    frameRate: { ideal: 30 }
+                    facingMode: cameraSelect.value ? undefined : 'user'
+                    // SEM width/height pra não forçar crop/zoom
                 },
                 audio: false
             };
