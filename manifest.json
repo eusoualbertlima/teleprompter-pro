@@ -1,0 +1,17 @@
+{
+    "name": "Teleprompter Pro",
+    "short_name": "Teleprompter",
+    "description": "Teleprompter com câmera integrada para gravar olhando direto pra câmera",
+    "start_url": "/",
+    "display": "fullscreen",
+    "orientation": "portrait",
+    "background_color": "#0f0f0f",
+    "theme_color": "#6366f1",
+    "icons": [
+        {
+            "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📽️</text></svg>",
+            "sizes": "any",
+            "type": "image/svg+xml"
+        }
+    ]
+}

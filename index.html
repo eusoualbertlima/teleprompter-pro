@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Teleprompter Pro</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Tela de Configuração -->
+    <div id="setup-screen" class="screen active">
+        <div class="setup-container">
+            <div class="logo">
+                <span class="logo-icon">📽️</span>
+                <h1>Teleprompter Pro</h1>
+                <p class="tagline">Grave olhando direto pra câmera</p>
+            </div>
+
+            <div class="form-group">
+                <label for="script-text">Cole seu texto aqui:</label>
+                <textarea id="script-text" placeholder="Cole o texto que você vai ler durante a gravação..."></textarea>
+            </div>
+
+            <div class="settings-row">
+                <div class="setting">
+                    <label for="speed-range">Velocidade</label>
+                    <input type="range" id="speed-range" min="1" max="10" value="3">
+                    <span id="speed-value">3</span>
+                </div>
+                <div class="setting">
+                    <label for="opacity-range">Transparência</label>
+                    <input type="range" id="opacity-range" min="20" max="100" value="70">
+                    <span id="opacity-value">70%</span>
+                </div>
+            </div>
+
+            <div class="settings-row">
+                <div class="setting">
+                    <label for="font-size">Tamanho da Fonte</label>
+                    <input type="range" id="font-size" min="16" max="48" value="28">
+                    <span id="font-size-value">28px</span>
+                </div>
+                <div class="setting">
+                    <label for="mirror-toggle">Espelhar Texto</label>
+                    <label class="switch">
+                        <input type="checkbox" id="mirror-toggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="camera-select">
+                <label for="camera-select">Câmera:</label>
+                <select id="camera-select">
+                    <option value="">Carregando câmeras...</option>
+                </select>
+            </div>
+
+            <button id="start-btn" class="btn-primary">
+                <span>🎬</span> Iniciar Teleprompter
+            </button>
+        </div>
+    </div>
+
+    <!-- Tela do Teleprompter -->
+    <div id="teleprompter-screen" class="screen">
+        <!-- Vídeo da Câmera (Background) -->
+        <video id="camera-video" autoplay playsinline muted></video>
+
+        <!-- Overlay do Texto -->
+        <div id="text-overlay">
+            <div id="scroll-container">
+                <div id="teleprompter-text"></div>
+            </div>
+        </div>
+
+        <!-- Controles -->
+        <div id="controls">
+            <button id="back-btn" class="control-btn" title="Voltar">
+                ⬅️
+            </button>
+            <button id="play-pause-btn" class="control-btn play-btn" title="Play/Pause">
+                ▶️
+            </button>
+            <button id="restart-btn" class="control-btn" title="Reiniciar">
+                🔄
+            </button>
+            <button id="speed-down-btn" class="control-btn" title="Mais Lento">
+                🐢
+            </button>
+            <button id="speed-up-btn" class="control-btn" title="Mais Rápido">
+                🐇
+            </button>
+        </div>
+
+        <!-- Indicador de Linha Atual -->
+        <div id="reading-line"></div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
