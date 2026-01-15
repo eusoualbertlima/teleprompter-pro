@@ -187,14 +187,20 @@ async function startTeleprompter() {
     }
 
     try {
-        // Inicia câmera COM ÁUDIO para gravação
-        // Sem restrições de resolução para evitar zoom
+        // Inicia câmera COM ÁUDIO em alta qualidade
         const constraints = {
             video: {
                 deviceId: cameraSelect.value ? { exact: cameraSelect.value } : undefined,
-                facingMode: cameraSelect.value ? undefined : 'user'
+                facingMode: cameraSelect.value ? undefined : 'user',
+                width: { ideal: 1080 },
+                height: { ideal: 1920 },
+                frameRate: { ideal: 30 }
             },
-            audio: true
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                sampleRate: 44100
+            }
         };
 
         state.stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -232,7 +238,10 @@ async function startTeleprompter() {
             const constraintsNoAudio = {
                 video: {
                     deviceId: cameraSelect.value ? { exact: cameraSelect.value } : undefined,
-                    facingMode: cameraSelect.value ? undefined : 'user'
+                    facingMode: cameraSelect.value ? undefined : 'user',
+                    width: { ideal: 1080 },
+                    height: { ideal: 1920 },
+                    frameRate: { ideal: 30 }
                 },
                 audio: false
             };
@@ -316,8 +325,9 @@ async function startRecording() {
             return;
         }
 
-        // Bitrate baixo para evitar travamentos
-        options.videoBitsPerSecond = 1500000; // 1.5 Mbps
+        // Qualidade alta para vídeo de story
+        options.videoBitsPerSecond = 4000000; // 4 Mbps - qualidade HD
+        options.audioBitsPerSecond = 128000;  // 128 kbps - áudio de qualidade
 
         state.recordedChunks = [];
         state.mediaRecorder = new MediaRecorder(state.stream, options);
